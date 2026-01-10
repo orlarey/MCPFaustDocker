@@ -1,15 +1,40 @@
 # MCPFaustDocker (Frontend Architecture)
 
-A Model Context Protocol (MCP) server for the Faust audio programming language, providing compilation and analysis tools through a containerized environment.
+This project implements an MCP server that exposes [Faust](https://faust.grame.fr) (Functional Audio Stream) compiler functionality to Large Language Models (LLMs) like Claude.
 
-## Introduction
-
-This project implements an MCP server that exposes Faust compiler functionality to Large Language Models (LLMs) like Claude. The server allows LLMs to compile Faust DSP code, generate block diagrams, and interact with the Faust ecosystem.
-
-[Faust](https://faust.grame.fr) (Functional Audio Stream) is a functional programming language specifically designed for real-time signal processing and synthesis. Through this MCP server, LLMs can:
+Through this MCP server, LLMs can:
 - Compile Faust DSP code to various target languages (C++, WebAssembly, etc.)
 - Generate visual representations of signal processing graphs
 - Query Faust compiler version and capabilities
+
+
+### MCP Client Configuration
+
+To use this server with an MCP client like Claude Desktop, add the following configuration to your MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "faust": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "/var/run/docker.sock:/var/run/docker.sock",
+        "-v", "/tmp/faust-shared:/tmp/faust-mcp",
+        "mcpfaustdocker"
+      ]
+    }
+  }
+}
+```
+
+**Important flags:**
+- `-i`: Interactive mode for stdin/stdout communication
+- `--rm`: Automatically removes the container when it exits
+- `-v /var/run/docker.sock:/var/run/docker.sock`: Grants access to Docker daemon (required for calling external Faust container)
+- `-v /tmp/faust-shared:/tmp/faust-mcp`: Shared volume for file exchange between MCP and Faust containers
+
+
 
 ### Architecture
 
@@ -91,39 +116,13 @@ Run the provided build script:
 Or build manually:
 
 ```bash
-docker build -t mcp-faust-server .
+docker build -t mcpfaustdocker .
 ```
 
 The Dockerfile uses a **multi-stage build** pattern:
 - **Stage 1 (Builder)**: Alpine Linux with gcc/g++ to compile the MCP server
 - **Stage 2 (Runtime)**: Minimal Alpine Linux with only `libstdc++` and `docker-cli`
 - Same base image (`alpine:20251224`) as the Faust Docker image for consistency
-
-### MCP Client Configuration
-
-To use this server with an MCP client like Claude Desktop, add the following configuration to your MCP settings:
-
-```json
-{
-  "mcpServers": {
-    "faust": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-v", "/var/run/docker.sock:/var/run/docker.sock",
-        "-v", "/tmp/faust-shared:/tmp/faust-mcp",
-        "mcp-faust-server"
-      ]
-    }
-  }
-}
-```
-
-**Important flags:**
-- `-i`: Interactive mode for stdin/stdout communication
-- `--rm`: Automatically removes the container when it exits
-- `-v /var/run/docker.sock:/var/run/docker.sock`: Grants access to Docker daemon (required for calling external Faust container)
-- `-v /tmp/faust-shared:/tmp/faust-mcp`: Shared volume for file exchange between MCP and Faust containers
 
 ## Usage Examples
 

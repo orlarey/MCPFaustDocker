@@ -58,7 +58,7 @@ ENTRYPOINT ["/usr/local/bin/mcpFaustServer"]
 #             "run", "-i", "--rm",
 #             "-v", "/var/run/docker.sock:/var/run/docker.sock",
 #             "-v", "/tmp/faust-shared:/tmp/faust-mcp",
-#             "mcp-faust-server"
+#             "mcpfaustdocker"
 #         ]
 #     }
 # }

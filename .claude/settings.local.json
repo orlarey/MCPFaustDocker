@@ -4,7 +4,8 @@
       "Bash(mv:*)",
       "Read(//Users/yannorlarey/Documents/Install/faustdockerperso/**)",
       "Bash(docker run:*)",
-      "Read(//private/tmp/faust-shared/test-svg/**)"
+      "Read(//private/tmp/faust-shared/test-svg/**)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

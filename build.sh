@@ -8,7 +8,7 @@
 ########################################################################
 
 echo "Building MCP Faust Server (frontend architecture)..."
-docker build -t mcp-faust-server .
+docker build -t mcpfaustdocker .
 
 echo ""
 echo "Build complete!"
@@ -23,7 +23,7 @@ echo '{
         "run", "-i", "--rm",
         "-v", "/var/run/docker.sock:/var/run/docker.sock",
         "-v", "/tmp/faust-shared:/tmp/faust-mcp",
-        "mcp-faust-server"
+        "mcpfaustdocker"
       ]
     }
   }
