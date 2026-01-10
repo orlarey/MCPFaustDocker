@@ -1,11 +1,31 @@
 #!/bin/bash
 
-docker build -t mcpfaustserver .
+########################################################################
+# Build script for MCP Faust Server (Frontend Architecture)
+#
+# This version uses an external Faust Docker image instead of
+# embedding the Faust compiler in the MCP server image.
+########################################################################
 
-# "mcpServers": {
-#     
-#     "mcpFaustSever": {
-#         "command": "docker",
-#         "args": ["run", "-i", "mcpfaustserver"]
-#     }
-# }
+echo "Building MCP Faust Server (frontend architecture)..."
+docker build -t mcp-faust-server .
+
+echo ""
+echo "Build complete!"
+echo ""
+echo "Configuration for Claude Desktop:"
+echo ""
+echo '{
+  "mcpServers": {
+    "faust": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "/var/run/docker.sock:/var/run/docker.sock",
+        "-v", "/tmp/faust-shared:/tmp/faust-mcp",
+        "mcp-faust-server"
+      ]
+    }
+  }
+}'
+echo ""

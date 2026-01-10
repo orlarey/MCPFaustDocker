@@ -1,31 +1,64 @@
-# Base image with C++ compilation tools
-FROM gcc:latest
+########################################################################
+########################################################################
+#
+#       MCP Faust Server - Frontend Architecture
+#       (Uses external Faust Docker image)
+#
+########################################################################
+########################################################################
 
-RUN apt update && apt install -y cmake
+ARG BASE_IMAGE=alpine:20251224
 
-# Clone, compile and install faust
-WORKDIR /
-RUN git clone https://github.com/grame-cncm/faust.git
-WORKDIR /faust
-RUN git fetch && git checkout 66b3351
-RUN make -C /faust/build cmake
-RUN make -C /faust/build 
-RUN make -C /faust/build install
+########################################################################
+# Stage 1: BUILD - Compilation du serveur MCP
+########################################################################
+FROM ${BASE_IMAGE} AS builder
 
+RUN apk add --no-cache \
+    gcc \
+    g++ \
+    musl-dev \
+    make
 
-# Compiling the MCP Faust Server
-
-WORKDIR /app
+WORKDIR /build
 COPY src/ ./src/
-RUN g++ -std=c++17 -Isrc -Isrc/tools  src/mcpFaustServer.cpp src/tools/*.cpp -o mcpFaustServer
 
-# Set entry point
-ENTRYPOINT ["/app/mcpFaustServer"]
+# Compilation du serveur MCP
+RUN g++ -std=c++17 \
+    -Isrc -Isrc/tools \
+    src/mcpFaustServer.cpp \
+    src/tools/*.cpp \
+    -o mcpFaustServer
+
+########################################################################
+# Stage 2: RUNTIME - Image finale légère
+########################################################################
+FROM ${BASE_IMAGE}
+
+# Installation des dépendances runtime
+RUN apk add --no-cache \
+    libstdc++ \
+    docker-cli
+
+# Copie du binaire compilé depuis le stage builder
+COPY --from=builder /build/mcpFaustServer /usr/local/bin/
+
+# Création du répertoire de travail
+RUN mkdir -p /tmp/faust-mcp
+WORKDIR /tmp/faust-mcp
+
+ENTRYPOINT ["/usr/local/bin/mcpFaustServer"]
 
 
+# Configuration pour Claude Desktop:
 # "mcpServers": {
-#     "mcpFaustServer": {
+#     "faust": {
 #         "command": "docker",
-#         "args": ["run", "-i", "mcpFaustServer"]
+#         "args": [
+#             "run", "-i", "--rm",
+#             "-v", "/var/run/docker.sock:/var/run/docker.sock",
+#             "-v", "/tmp/faust-shared:/tmp/faust-mcp",
+#             "mcp-faust-server"
+#         ]
 #     }
 # }

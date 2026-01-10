@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Read(//Users/yannorlarey/Documents/Install/faustdockerperso/**)",
+      "Bash(docker run:*)",
+      "Read(//private/tmp/faust-shared/test-svg/**)"
     ],
     "deny": [],
     "ask": []

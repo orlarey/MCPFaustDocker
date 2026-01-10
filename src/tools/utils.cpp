@@ -122,3 +122,53 @@ std::optional<json> encodeFile(const std::string &filepath) {
 
   return result;
 }
+
+// Helper function to read a file into a string
+static std::string readFileToString(const std::string& filepath) {
+  std::ifstream file(filepath);
+  if (!file.is_open()) {
+    return "";
+  }
+  std::string content((std::istreambuf_iterator<char>(file)),
+                      std::istreambuf_iterator<char>());
+  return content;
+}
+
+// Runs Faust compiler via docker run command (Docker-in-Docker architecture)
+// This works because the MCP container has docker CLI and socket mounted
+FaustDockerResult runFaustDocker(const std::string& faustArgs,
+                                  const std::string& workDir) {
+  FaustDockerResult result;
+
+  // Ensure work directory exists
+  ensureWorkDir();
+
+  // Paths for capturing stdout/stderr (in the MCP container's filesystem)
+  std::string stdoutPath = workDir + "/.faust_stdout";
+  std::string stderrPath = workDir + "/.faust_stderr";
+
+  // Build Docker command
+  // The trick: we need to mount HOST_SHARED_DIR from the HOST (not from MCP container)
+  // Since MCP container has HOST_SHARED_DIR mounted at WORK_DIR,
+  // we need to mount the HOST path HOST_SHARED_DIR to the Faust container
+  std::string dockerCmd =
+    "docker run --rm "
+    "-v " + HOST_SHARED_DIR + ":/tmp " +
+    FAUST_DOCKER_IMAGE + " " +
+    faustArgs +
+    " > " + stdoutPath +
+    " 2> " + stderrPath;
+
+  // Execute command
+  result.exitCode = std::system(dockerCmd.c_str());
+
+  // Read stdout and stderr
+  result.output = readFileToString(stdoutPath);
+  result.errorOutput = readFileToString(stderrPath);
+
+  // Clean up temporary files
+  std::remove(stdoutPath.c_str());
+  std::remove(stderrPath.c_str());
+
+  return result;
+}

@@ -1,4 +1,4 @@
-# MCPFaustDocker
+# MCPFaustDocker (Frontend Architecture)
 
 A Model Context Protocol (MCP) server for the Faust audio programming language, providing compilation and analysis tools through a containerized environment.
 
@@ -11,7 +11,17 @@ This project implements an MCP server that exposes Faust compiler functionality 
 - Generate visual representations of signal processing graphs
 - Query Faust compiler version and capabilities
 
-This is an early version of the server, built as an extension of the [MCPHelloWorldDocker](https://github.com/orlarey/MCPHelloWorldDocker) project. For detailed information about the MCP protocol implementation, JSON-RPC communication, and architectural design, please refer to the [MCPHelloWorldDocker README](https://github.com/orlarey/MCPHelloWorldDocker/blob/main/README.md).
+### Architecture
+
+**Frontend Architecture**: This branch uses an **external Faust Docker image** ([ghcr.io/orlarey/faustdocker](https://github.com/orlarey/faustdocker)) instead of embedding the Faust compiler directly in the MCP server container. This provides:
+
+- ✅ **Lightweight images**: MCP server ~50MB (Alpine-based) vs ~1.2GB (gcc + Faust)
+- ✅ **Separation of concerns**: MCP logic separate from Faust compiler
+- ✅ **Easy updates**: Update Faust independently with `docker pull`
+- ✅ **Consistent tooling**: Same Faust image for CLI and MCP usage
+- ✅ **Multi-stage builds**: Both images use Alpine Linux for minimal size
+
+This is built as an extension of the [MCPHelloWorldDocker](https://github.com/orlarey/MCPHelloWorldDocker) project. For detailed information about the MCP protocol implementation, JSON-RPC communication, and architectural design, please refer to the [MCPHelloWorldDocker README](https://github.com/orlarey/MCPHelloWorldDocker/blob/main/README.md).
 
 ## Available Tools
 
@@ -84,11 +94,10 @@ Or build manually:
 docker build -t mcp-faust-server .
 ```
 
-The Dockerfile:
-- Uses `gcc:latest` as the base image
-- Installs the Faust compiler
-- Compiles the MCP server with all tool implementations
-- Sets up the containerized environment
+The Dockerfile uses a **multi-stage build** pattern:
+- **Stage 1 (Builder)**: Alpine Linux with gcc/g++ to compile the MCP server
+- **Stage 2 (Runtime)**: Minimal Alpine Linux with only `libstdc++` and `docker-cli`
+- Same base image (`alpine:20251224`) as the Faust Docker image for consistency
 
 ### MCP Client Configuration
 
@@ -99,13 +108,22 @@ To use this server with an MCP client like Claude Desktop, add the following con
   "mcpServers": {
     "faust": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "mcp-faust-server"]
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "/var/run/docker.sock:/var/run/docker.sock",
+        "-v", "/tmp/faust-shared:/tmp/faust-mcp",
+        "mcp-faust-server"
+      ]
     }
   }
 }
 ```
 
-The `-i` flag enables interactive mode for stdin/stdout communication. The `--rm` flag automatically removes the container when it exits.
+**Important flags:**
+- `-i`: Interactive mode for stdin/stdout communication
+- `--rm`: Automatically removes the container when it exits
+- `-v /var/run/docker.sock:/var/run/docker.sock`: Grants access to Docker daemon (required for calling external Faust container)
+- `-v /tmp/faust-shared:/tmp/faust-mcp`: Shared volume for file exchange between MCP and Faust containers
 
 ## Usage Examples
 
@@ -141,7 +159,17 @@ Request: "Generate an SVG diagram for this Faust code"
 This server implements the MCP protocol from scratch using:
 - Standard C++ with C++17 features
 - The `nlohmann/json` library for JSON parsing
-- Direct system calls to the Faust compiler
+- Docker-in-Docker pattern to call external Faust compiler
+
+### How It Works
+
+1. **MCP Server Container** runs with access to the Docker daemon via mounted socket
+2. **Tool calls** write DSP code to `/tmp/faust-mcp/` directory
+3. **`runFaustDocker()`** launches `ghcr.io/orlarey/faustdocker:main` with:
+   - Mounted work directory: `-v /tmp/faust-mcp:/tmp`
+   - Faust compilation arguments
+4. **Generated files** are written back to the shared directory
+5. **MCP Server** reads results and returns them to the LLM
 
 Communication occurs through JSON-RPC 2.0 messages over stdio, following the MCP specification. Each tool inherits from the `McpTool` base class and implements:
 - `name()`: Returns the tool identifier
@@ -160,6 +188,7 @@ This is an early version focusing on core compilation features. Potential improv
 ## References
 
 - [Faust Programming Language](https://faust.grame.fr)
+- [Faust Docker Image](https://github.com/orlarey/faustdocker) - External Faust compiler used by this server
 - [MCPHelloWorldDocker](https://github.com/orlarey/MCPHelloWorldDocker) - Base implementation and MCP protocol details
 - [Model Context Protocol Specification](https://modelcontextprotocol.io)
 - [Faust Documentation](https://faustdoc.grame.fr)

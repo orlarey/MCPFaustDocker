@@ -63,13 +63,22 @@ json FaustCompileTool::call(const std::string &args) {
     outFile << srcCode;
     outFile.close();
 
-    // Call the Faust compiler
-    std::string command = "faust -o " + cppPath + " " + dspPath + " " +
-                          compileOptions + " 2> " + errPath;
-    int result = std::system(command.c_str());
+    // Call the Faust compiler via Docker
+    // Use /tmp paths since the work directory is mounted to /tmp in the container
+    std::string faustArgs = "-o /tmp/" + baseName + ".cpp /tmp/" + dspfilename;
+    if (!compileOptions.empty()) {
+      faustArgs += " " + compileOptions;
+    }
+
+    auto result = runFaustDocker(faustArgs);
 
     // Check for compilation error
-    if (result != 0) {
+    if (result.exitCode != 0) {
+      // Write stderr to error file for consistency with existing code
+      std::ofstream errFile(errPath);
+      errFile << result.errorOutput;
+      errFile.close();
+
       auto errData = encodeFile(errPath);
       json resource = *errData;
       return json::array({{{"type", "resource"}, {"resource", resource}}});

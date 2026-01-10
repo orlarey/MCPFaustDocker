@@ -54,11 +54,16 @@ json FaustSVGTool::call(const std::string &args) {
     outFile << srcCode;
     outFile.close();
 
-    // Call the Faust compiler (SVG files are created in a subdirectory)
-    std::string command = "cd " + WORK_DIR + " && faust -o /dev/null -svg source.dsp 2> source.txt";
-    int result = std::system(command.c_str());
+    // Call the Faust compiler via Docker to generate SVG
+    // SVG files are created in a subdirectory named source-svg/
+    auto result = runFaustDocker("-o /dev/null -svg /tmp/source.dsp");
 
-    if (result != 0) {
+    if (result.exitCode != 0) {
+      // Write stderr to error file
+      std::ofstream errFile(errPath);
+      errFile << result.errorOutput;
+      errFile.close();
+
       // Read error file if compilation failed
       auto errData = encodeFile(errPath);
       if (errData) {

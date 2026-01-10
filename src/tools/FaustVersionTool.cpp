@@ -34,18 +34,25 @@ json FaustVersionTool::call(const std::string &args) {
             {"text", "Error: Could not create work directory"}}});
     }
 
-    // Create path in work directory
-    std::string versionPath = getWorkPath("version.txt");
+    // Call Faust via Docker to get version
+    auto result = runFaustDocker("-v");
 
-    // Execute faust -v and redirect output to version.txt
-    std::string command = "faust -v > " + versionPath + " 2>&1";
-    int result = std::system(command.c_str());
-
-    if (result != 0) {
+    if (result.exitCode != 0) {
       return json::array(
           {{{"type", "text"},
             {"text", "Error: Failed to execute faust command"}}});
     }
+
+    // Create path in work directory to store version info
+    std::string versionPath = getWorkPath("version.txt");
+
+    // Write version output to file
+    std::ofstream versionFile(versionPath);
+    versionFile << result.output;
+    if (!result.errorOutput.empty()) {
+      versionFile << result.errorOutput;
+    }
+    versionFile.close();
 
     // Read the contents of version.txt using encodeFile
     auto fileData = encodeFile(versionPath);

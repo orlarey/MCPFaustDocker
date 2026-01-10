@@ -34,15 +34,22 @@ json FaustHelpTool::call(const std::string &args) {
             {"text", "Error: Could not create work directory"}}});
     }
 
-    // Create path in work directory
-    std::string helpPath = getWorkPath("help.txt");
-
-    // Execute faust -h and redirect output to help.txt
-    std::string command = "faust -h > " + helpPath + " 2>&1";
-    int result = std::system(command.c_str());
+    // Call Faust via Docker to get help
+    auto result = runFaustDocker("-h");
 
     // Note: faust -h returns non-zero exit code even on success
     // So we don't check the result value here
+
+    // Create path in work directory to store help info
+    std::string helpPath = getWorkPath("help.txt");
+
+    // Write help output to file
+    std::ofstream helpFile(helpPath);
+    helpFile << result.output;
+    if (!result.errorOutput.empty()) {
+      helpFile << result.errorOutput;
+    }
+    helpFile.close();
 
     // Read the contents of help.txt using encodeFile
     auto fileData = encodeFile(helpPath);
