@@ -21,7 +21,7 @@ To use this server with an MCP client like Claude Desktop, add the following con
         "run", "-i", "--rm",
         "-v", "/var/run/docker.sock:/var/run/docker.sock",
         "-v", "/tmp/faust-shared:/tmp/faust-mcp",
-        "mcpfaustdocker"
+        "ghcr.io/orlarey/mcpfaustdocker:latest"
       ]
     }
   }
