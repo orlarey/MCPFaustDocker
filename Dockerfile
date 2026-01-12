@@ -18,7 +18,9 @@ RUN apk add --no-cache \
     gcc \
     g++ \
     musl-dev \
-    make
+    make \
+    fftw-dev \
+    libpng-dev
 
 WORKDIR /build
 COPY src/ ./src/
@@ -27,7 +29,12 @@ COPY src/ ./src/
 RUN g++ -std=c++17 \
     -Isrc -Isrc/tools \
     src/mcpFaustServer.cpp \
-    src/tools/*.cpp \
+    src/tools/FaustVersionTool.cpp \
+    src/tools/FaustCompileTool.cpp \
+    src/tools/FaustSVGTool.cpp \
+    src/tools/FaustHelpTool.cpp \
+    src/tools/FaustSpectrogramTool.cpp \
+    src/tools/utils.cpp \
     -o mcpFaustServer
 
 ########################################################################
@@ -38,10 +45,17 @@ FROM ${BASE_IMAGE}
 # Installation des dépendances runtime
 RUN apk add --no-cache \
     libstdc++ \
-    docker-cli
+    docker-cli \
+    gcc \
+    g++ \
+    fftw-dev \
+    libpng-dev
 
 # Copie du binaire compilé depuis le stage builder
 COPY --from=builder /build/mcpFaustServer /usr/local/bin/
+
+# Copie de spectrogram.cpp dans un emplacement permanent (pas dans /tmp/faust-mcp qui sera monté)
+COPY --from=builder /build/src/tools/spectrogram.cpp /usr/local/share/faust/
 
 # Création du répertoire de travail
 RUN mkdir -p /tmp/faust-mcp

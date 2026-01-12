@@ -50,7 +50,7 @@ This is built as an extension of the [MCPHelloWorldDocker](https://github.com/or
 
 ## Available Tools
 
-The server currently provides four tools for interacting with Faust:
+The server currently provides five tools for interacting with Faust:
 
 ### FaustVersionTool
 Returns the version of the Faust compiler installed in the container. This tool helps verify the compilation environment and ensures compatibility with specific Faust features.
@@ -74,6 +74,31 @@ Generates SVG block diagrams from Faust code, providing visual representations o
 **Parameters:**
 - `value` (required, string): The Faust DSP source code to visualize
 
+### FaustSpectrogramTool
+Generates mel-scale spectrogram PNG images from Faust DSP code. This tool:
+- Compiles the DSP code with a spectrogram architecture
+- Synthesizes audio with specified parameters
+- Generates a visual spectrogram using FFT analysis
+- Returns the PNG image as a resource
+
+The DSP code must expose three specific parameters:
+- `gate`: button or checkbox (controls note on/off)
+- `freq`: frequency parameter (nentry, hslider, or vslider)
+- `gain`: amplitude parameter (nentry, hslider, or vslider)
+
+**Parameters:**
+- `value` (required, string): The Faust DSP source code
+- `duration` (optional, number): Total duration in seconds (default: 2.0)
+- `gate_duration` (optional, number): Gate=1 duration in seconds (default: 0.5)
+- `frequency` (optional, number): Frequency in Hz (default: 440.0)
+- `gain` (optional, number): Gain value 0.0-1.0 (default: 0.8)
+- `sample_rate` (optional, number): Sample rate in Hz (default: 44100)
+- `fft_size` (optional, number): FFT size, power of 2 (default: 2048)
+- `hop_size` (optional, number): Hop size in samples (default: 512)
+- `mel_bands` (optional, number): Number of mel bands (default: 128)
+- `colormap` (optional, string): Colormap: viridis, magma, hot, gray (default: "hot")
+- `use_db` (optional, boolean): Display in decibels (default: false)
+
 ### FaustHelpTool
 Returns comprehensive help information about the Faust compiler, including all available compilation options, flags, and architectures. This is essential for understanding advanced compilation features.
 
@@ -92,7 +117,9 @@ MCPFaustDocker/
 │       ├── FaustVersionTool.cpp/hh
 │       ├── FaustCompileTool.cpp/hh
 │       ├── FaustSVGTool.cpp/hh
+│       ├── FaustSpectrogramTool.cpp/hh
 │       ├── FaustHelpTool.cpp/hh
+│       ├── spectrogram.cpp    # Faust architecture for spectrogram
 │       └── utils.cpp/hh       # Helper functions
 ├── Dockerfile
 ├── build.sh
@@ -153,6 +180,16 @@ process = _ : *(0.5) : +(0.1);
 ```
 Request: "Generate an SVG diagram for this Faust code"
 
+### Example 5: Generate a Spectrogram
+```faust
+import("stdfaust.lib");
+gate = button("gate");
+freq = nentry("freq", 440, 20, 20000, 1);
+gain = hslider("gain", 0.5, 0, 1, 0.01);
+process = os.osc(freq) * gate * gain;
+```
+Request: "Generate a spectrogram for this oscillator at 880Hz"
+
 ## Technical Details
 
 This server implements the MCP protocol from scratch using:
@@ -182,7 +219,8 @@ This is an early version focusing on core compilation features. Potential improv
 - Real-time compilation with error diagnostics
 - Library management and import resolution
 - Integration with Faust IDE features
-- Audio file generation and processing
+- Audio file generation and rendering
+- Advanced spectrogram options (custom layouts, scientific presets, etc.)
 
 ## References
 
