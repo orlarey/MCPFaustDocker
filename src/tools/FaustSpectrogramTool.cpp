@@ -228,11 +228,8 @@ json FaustSpectrogramTool::call(const std::string &args) {
           {{{"type", "text"}, {"text", "Error: PNG file is empty or could not be encoded"}}});
     }
 
-    // Return as MCP content array with image type (not resource)
+    // Return as MCP content array with only the image
     return json::array({
-      {{"type", "text"}, {"text", "Spectrogram generated successfully!\nParameters: " +
-        std::to_string(duration) + "s, " + std::to_string(frequency) + "Hz, " +
-        std::to_string(mel_bands) + " mel bands"}},
       {{"type", "image"}, {"data", base64Data}, {"mimeType", mimeType}}
     });
 

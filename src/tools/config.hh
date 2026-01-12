@@ -1,10 +1,11 @@
 #pragma once
 
 #include <string>
+#include <cstdlib>
 
 // Configuration for Faust MCP serveur
 
-// Work directory management
+// Work directory management (internal container path)
 const std::string WORK_DIR = "/tmp/faust-mcp";
 
 // Faust Docker image configuration
